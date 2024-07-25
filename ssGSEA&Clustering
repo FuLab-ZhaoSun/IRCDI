@@ -1,0 +1,66 @@
+
+library(data.table)
+library(stringr)
+library(pROC)
+library(readr)
+library(ggpubr)
+library(eoffice)
+library(Rcpp)
+library(clusterProfiler)
+library(tidyverse)
+library(org.Hs.eg.db)
+library(EnsDb.Hsapiens.v75)
+require(tidyverse)
+require(ggplot2)
+require(ggsci)
+library(data.table)
+
+###################################   一致性聚类  #######################################
+
+Immune_gsva <- gsva(as.matrix(mRNA_Cancer_LIHC), Immune_gmt,
+                method = "ssgsea",kcdf = "Gaussian",mx.diff=T,
+                parallel.sz=4)
+
+Immune_gsva <- data.frame(Immune_gsva)
+
+###################################   一致性聚类  #######################################
+
+setwd("XXXX")
+
+Immune_cluster <- ConsensusClusterPlus(d = as.matrix(Immune_gsva),maxK = 9,
+                           reps = 1000,
+                           pItem = 0.8,
+                           pFeature = 1,
+                           title = "mxdif_T_method_ssgsea",
+                           tmyPal = c('navy','darkred'),
+                           distance = "euclidean",
+                           clusterAlg = "km",
+                           #innerLinkage="complete",
+                           seed = 1234.1234,
+                           plot = "pdf",
+                           writeTable = T)
+
+Kvec = 2:9
+x1 = 0.1; x2 = 0.9 
+PAC = rep(NA,length(Kvec)) 
+names(PAC) = paste("K=",Kvec,sep="") 
+for(i in Kvec){
+  M = Immune_cluster[[i]]$consensusMatrix
+  Fn = ecdf(M[lower.tri(M)])
+  PAC[i-1] = Fn(x2) - Fn(x1)
+}
+optK = Kvec[which.min(PAC)]
+
+PAC <- as.data.frame(PAC)
+PAC$K <- 2:9
+library(ggplot2)
+
+ggplot(PAC,aes(factor(K),PAC,group=1))+
+  geom_line()+
+  theme_bw(base_rect_size = 1.5)+
+  geom_point(size=4,shape=21,color='darkred',fill='orange')+
+  ggtitle('Proportion of ambiguous clustering')+
+  xlab('Cluster number K')+ylab(NULL)+
+  theme(axis.text = element_text(size=12),
+        plot.title = element_text(hjust=0.5),
+        axis.title = element_text(size=13))
