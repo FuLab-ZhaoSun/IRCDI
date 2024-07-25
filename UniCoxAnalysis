@@ -1,0 +1,55 @@
+
+return_tabletxt <- function(anno_col_TCGA){
+  
+  BaSurv <- Surv(time = anno_col_TCGA$OS.time, event = anno_col_TCGA$OS)
+  
+  anno_col_TCGA$BaSurv <- with(anno_col_TCGA,BaSurv)
+  
+  UniCox <- function(x,anno_col_TCGA){
+    FML <- as.formula(paste0('BaSurv~',x))
+    GCox <- coxph(FML, data = anno_col_TCGA)
+    GSum <- summary(GCox)
+    HR <- round(GSum$coefficients[,2],2)
+    PValue <- round(GSum$coefficients[,5],3)
+    CI <- paste0(round(GSum$conf.int[,3:4],2), collapse = '-')
+    Unicox <- data.frame('Characteristics'= x,
+                         'Hazard Ratio' = HR,
+                         'CI95' = CI,
+                         'P Value' = PValue)
+    return(Unicox)
+  }
+  
+  UniVar <- lapply(as.list(colnames(anno_col_TCGA)[c(1:101)]),anno_col_TCGA = anno_col_TCGA,UniCox)
+  UniVar <- plyr::ldply(UniVar, data.frame)
+  
+  tabletext <- data.frame(Gene = UniVar$Characteristics,
+                          HazardRatio = UniVar$Hazard.Ratio,
+                          Low = as.numeric(str_remove(UniVar$CI95,"-.*")),
+                          High = as.numeric(str_remove(UniVar$CI95,".*-")))
+  return(tabletext)
+}
+
+an1 <- return_tabletxt(anno_col_TCGA)
+
+ggplot(an1,
+       aes(x=HazardRatio,y=Gene)) + 
+  # xlim(c(0,2))+
+  geom_errorbar(stat = "identity",
+                aes(xmin=Low,
+                    xmax=High),
+                size = 1,
+                width = 0.2,
+                show.legend = F,
+                position = "dodge") +
+  geom_point(size=3,
+             show.legend = TRUE) + 
+  theme_bw()+
+  theme(panel.spacing = unit(0,'lines'),
+        panel.background = element_blank(),
+        axis.line = element_line(),
+        panel.grid = element_blank(),
+        axis.ticks.y = element_blank(),
+        strip.text = element_text(hjust = 0))+
+  geom_vline(xintercept = 1,
+             color="gray",
+             lty="dashed")
