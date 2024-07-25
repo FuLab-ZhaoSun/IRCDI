@@ -1,0 +1,56 @@
+
+library(stringr)
+library(pROC)
+library(readr)
+library(ggpubr)
+library(eoffice)
+library(Rcpp)
+library(clusterProfiler)
+library(tidyverse)
+library(org.Hs.eg.db)
+library(ggsci)
+library(data.table)
+library(ConsensusClusterPlus)
+library(pheatmap)
+library(broom)
+library(ggplot2)
+library(RColorBrewer)
+library(glmnet)
+library(survival)
+library(ggrisk)
+library(ComplexHeatmap)
+library(GSVA)
+library(GSEABase)
+library(enrichplot)
+library(limma)
+library(timeROC)
+
+res.cut <- surv_cutpoint(XXX, 
+                         time = "os", 
+                         event = "censOS",
+                         variables = "XXX")
+
+res.cat <- surv_categorize(res.cut)
+
+fit <- survfit(Surv(os, 
+                    censOS) ~ XXX, data = res.cat)
+
+##################     可视化即将构建的列线图     ###############################
+
+ggsurvplot(fit, 
+           pval = T, # 在图上添加log rank检验的p值
+           #      legend.labs=c("I","II",'III','IV'), 
+           legend = c(0.8, 0.85),
+           ylab="Overall survival",xlab = "Months",
+           linetype = "strata", # 生存曲线的线型
+           surv.median.line = "hv", # 标注出中位生存时间
+           ggtheme = theme_bw(), #背景布局
+           #         palette =  brewer.pal(7, "Set1")[c(3,2,4,1)],# 图形颜色风格
+           #             palette = c("#E13220","#3450A8"),
+           risk.table = TRUE,
+           font.main = c(20, "plain"),
+           font.x = c(20, "plain"),
+           font.y = c(20, "plain"),
+           font.tickslab = c(18, "plain"),
+           font.legend = c(14, "plain"),
+           font.pval = c(20, "plain")) 
